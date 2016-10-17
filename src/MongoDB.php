@@ -17,7 +17,7 @@ use MongoDB\Database;
  *
  * @author Julien Chaumond <chaumond@gmail.com>
  */
-final class MongoDB implements AuthorizationCodeInterface
+final class MongoDB implements AuthorizationCodeInterface, AccessTokenInterface
 {
     /**
      * MongoDB\Database instance.
@@ -45,6 +45,7 @@ final class MongoDB implements AuthorizationCodeInterface
         $this->config = array_merge(
             [
                 'code_table' => 'oauth_authorization_codes',
+                'access_token_table' => 'oauth_access_tokens',
             ],
             $config
         );
@@ -144,6 +145,65 @@ final class MongoDB implements AuthorizationCodeInterface
     public function expireAuthorizationCode($code)
     {
         $this->getCollection('code_table')->deleteOne(['_id' => $code]);
+    }
+
+    /**
+     * Look up the supplied oauth_token from storage.
+     *
+     * We need to retrieve access token data as we create and verify tokens.
+     *
+     * @param string $token The oauth_token to be check with.
+     *
+     * @return array An associative array as below, and return NULL if the supplied oauth_token
+     * is invalid:
+     * - expires: Stored expiration in unix timestamp.
+     * - client_id: (optional) Stored client identifier.
+     * - user_id: (optional) Stored user identifier.
+     * - scope: (optional) Stored scope values in space-separated string.
+     *
+     * @ingroup oauth2_section_7
+     */
+    public function getAccessToken($token)
+    {
+        $document = $this->getCollection('access_token_table')->findOne(['_id' => $token]);
+        if ($document === null) {
+            return null;
+        }
+
+        return [
+            'expires' => $document['expires']->toDateTime()->getTimestamp(),
+            'client_id' => $document['client_id'],
+            'user_id' => $document['user_id'],
+            'scope' => $document['scope'],
+        ];
+    }
+
+    /**
+     * Store the supplied access token values to storage.
+     *
+     * We need to store access token data as we create and verify tokens.
+     *
+     * @param string  $token    The oauth_token to be stored.
+     * @param string  $clientId Client identifier to be stored.
+     * @param string  $userId   User identifier to be stored.
+     * @param integer $expires  Expiration to be stored as a Unix timestamp.
+     * @param string  $scope    OPTIONAL Scopes to be stored in space-separated string.
+     *
+     * @return void
+     *
+     * @ingroup oauth2_section_4
+     */
+    public function setAccessToken($token, $clientId, $userId, $expires, $scope = null)
+    {
+        $this->getCollection('access_token_table')->insertOne(
+            [
+                '_id' => $token,
+                'client_id' => $clientId,
+                'user_id' => $userId,
+                'expires' => new UTCDateTime($expires * 1000),
+                'scope' => $scope,
+            ]
+        );
     }
 
     /**

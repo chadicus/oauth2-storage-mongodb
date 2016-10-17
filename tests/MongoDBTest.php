@@ -184,4 +184,105 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
         $storage = new MongoDB($databaseMock, ['code_table' => 'oauth_authorization_codes']);
         $storage->expireAuthorizationCode($code);
     }
+
+    /**
+     * Verify basic behavior of getAccessToken().
+     *
+     * @test
+     * @covers ::getAccessToken
+     *
+     * @return void
+     */
+    public function getAccessToken()
+    {
+        $token = md5(microtime(true));
+        $expires = new UTCDateTime((int)(microtime(true) * 1000));
+        $document = new BSONDocument(
+            [
+                '_id' => $token,
+                'client_id' => 'a client id',
+                'user_id' => 'a user id',
+                'expires' => $expires,
+                'scope' => 'a scope',
+            ]
+        );
+
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->will($this->returnValue($document));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_access_tokens')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertSame(
+            [
+                'expires' => $expires->toDateTime()->getTimestamp(),
+                'client_id' => 'a client id',
+                'user_id' => 'a user id',
+                'scope' => 'a scope',
+            ],
+            $storage->getAccessToken($token)
+        );
+    }
+
+    /**
+     * Verify behavior of getAccessToken() with null result.
+     *
+     * @test
+     * @covers ::getAccessToken
+     *
+     * @return void
+     */
+    public function getAccessTokenNullResult()
+    {
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->will($this->returnValue(null));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_access_tokens')
+        )->will($this->returnValue($collectionMock));
+
+        $token = md5(microtime(true));
+        $storage = new MongoDB($databaseMock);
+        $this->assertNull($storage->getAccessToken($token));
+    }
+
+    /**
+     * Verify basic behavior of setAccessToken().
+     *
+     * @test
+     * @covers ::setAccessToken
+     *
+     * @return void
+     */
+    public function setAccessToken()
+    {
+        $token = md5(microtime(true));
+        $expires = strtotime('+1 hour');
+
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('insertOne')->with(
+            $this->equalTo(
+                [
+                    '_id' => $token,
+                    'client_id' => 'a client id',
+                    'user_id' => 'a user id',
+                    'expires' => new UTCDateTime($expires * 1000),
+                    'scope' => 'a scope',
+                ]
+            )
+        );
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_access_tokens')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+        $storage->setAccessToken($token, 'a client id', 'a user id', $expires, 'a scope');
+    }
 }
