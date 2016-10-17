@@ -285,4 +285,320 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
         $storage = new MongoDB($databaseMock);
         $storage->setAccessToken($token, 'a client id', 'a user id', $expires, 'a scope');
     }
+
+    /**
+     * Verify basic behavior of getClientDetails().
+     *
+     * @test
+     * @covers ::getClientDetails
+     *
+     * @return void
+     */
+    public function getClientDetails()
+    {
+        $document = new BSONDocument(
+            [
+                '_id' => 'a client id',
+                'redirect_uri' => ['redirectUriOne', 'redirectUriTwo'],
+                'user_id' => 'a user id',
+                'scope' => ['aScope', 'anotherScope'],
+                'grant_types' => ['grant type 1', 'grant type 2'],
+            ]
+        );
+
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->will($this->returnValue($document));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertSame(
+            [
+                'redirect_uri' => 'redirectUriOne redirectUriTwo',
+                'client_id' => 'a client id',
+                'grant_types' => ['grant type 1', 'grant type 2'],
+                'user_id' => 'a user id',
+                'scope' => 'aScope anotherScope',
+            ],
+            $storage->getClientDetails('a client id')
+        );
+    }
+
+    /**
+     * Verify behavior of getClientDetails() with null result.
+     *
+     * @test
+     * @covers ::getClientDetails
+     *
+     * @return void
+     */
+    public function getClientDetailsNullResult()
+    {
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->will($this->returnValue(null));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+        $this->assertFalse($storage->getClientDetails('a client id'));
+    }
+
+    /**
+     * Verify basic behavior of getClientScope().
+     *
+     * @test
+     * @covers ::getClientScope
+     *
+     * @return void
+     */
+    public function getClientScope()
+    {
+        $document = new BSONDocument(
+            [
+                '_id' => 'a client id',
+                'redirect_uri' => ['redirectUriOne', 'redirectUriTwo'],
+                'user_id' => 'a user id',
+                'scope' => ['aScope', 'anotherScope'],
+                'grant_types' => ['grant type 1', 'grant type 2'],
+            ]
+        );
+
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => 'a client id'])
+        )->will($this->returnValue($document));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertSame('aScope anotherScope', $storage->getClientScope('a client id'));
+    }
+
+    /**
+     * Verify behavior of getClientScope() when scope is empty.
+     *
+     * @test
+     * @covers ::getClientScope
+     *
+     * @return void
+     */
+    public function getClientScopeEmptyScope()
+    {
+        $document = new BSONDocument(
+            [
+                '_id' => 'a client id',
+                'redirect_uri' => ['redirectUriOne', 'redirectUriTwo'],
+                'user_id' => 'a user id',
+                'scope' => null,
+                'grant_types' => ['grant type 1', 'grant type 2'],
+            ]
+        );
+
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => 'a client id'])
+        )->will($this->returnValue($document));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertSame('', $storage->getClientScope('a client id'));
+    }
+
+    /**
+     * Verify behavior of getClientScope() when client is not found.
+     *
+     * @test
+     * @covers ::getClientScope
+     *
+     * @return void
+     */
+    public function getClientScopeClientNotFound()
+    {
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => 'a client id'])
+        )->will($this->returnValue(null));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertSame('', $storage->getClientScope('a client id'));
+    }
+
+    /**
+     * Verify basic behavior of checkRestrictedGrantType().
+     *
+     * @test
+     * @covers ::checkRestrictedGrantType
+     *
+     * @return void
+     */
+    public function checkRestrictedGrantType()
+    {
+        $document = new BSONDocument(
+            [
+                '_id' => 'a client id',
+                'redirect_uri' => ['redirectUriOne', 'redirectUriTwo'],
+                'user_id' => 'a user id',
+                'scope' => ['aScope', 'anotherScope'],
+                'grant_types' => ['grant type 1', 'grant type 2'],
+            ]
+        );
+
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => 'a client id'])
+        )->will($this->returnValue($document));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertTrue($storage->checkRestrictedGrantType('a client id', 'grant type 2'));
+    }
+
+    /**
+     * Verify basic behavior of checkClientCredentials().
+     *
+     * @test
+     * @covers ::checkClientCredentials
+     *
+     * @return void
+     */
+    public function checkClientCredentials()
+    {
+        $document = new BSONDocument(
+            [
+                '_id' => 'a client id',
+                'redirect_uri' => ['redirectUriOne', 'redirectUriTwo'],
+                'user_id' => 'a user id',
+                'scope' => ['aScope', 'anotherScope'],
+                'grant_types' => ['grant type 1', 'grant type 2'],
+                'client_secret' => crypt('a client id a secret', MongoDB::SALT),
+            ]
+        );
+
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => 'a client id'])
+        )->will($this->returnValue($document));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertTrue($storage->checkClientCredentials('a client id', ' a secret'));
+    }
+
+    /**
+     * Verify behavior of checkClientCredentials() when client is not found.
+     *
+     * @test
+     * @covers ::checkClientCredentials
+     *
+     * @return void
+     */
+    public function checkClientCredentialsClientNotFound()
+    {
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => 'a client id'])
+        )->will($this->returnValue(null));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertFalse($storage->checkClientCredentials('a client id', ' a secret'));
+    }
+
+    /**
+     * Verify basic behavior of isPublicClient().
+     *
+     * @test
+     * @covers ::isPublicClient
+     *
+     * @return void
+     */
+    public function isPublicClient()
+    {
+        $document = new BSONDocument(
+            [
+                '_id' => 'a client id',
+                'redirect_uri' => ['redirectUriOne', 'redirectUriTwo'],
+                'user_id' => 'a user id',
+                'scope' => ['aScope', 'anotherScope'],
+                'grant_types' => ['grant type 1', 'grant type 2'],
+                'client_secret' => null,
+            ]
+        );
+
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => 'a client id'])
+        )->will($this->returnValue($document));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertTrue($storage->isPublicClient('a client id'));
+    }
+
+    /**
+     * Verify behavior of isPublicClient() when client is not found.
+     *
+     * @test
+     * @covers ::isPublicClient
+     *
+     * @return void
+     */
+    public function isPublicClientClientNotFound()
+    {
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => 'a client id'])
+        )->will($this->returnValue(null));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertFalse($storage->isPublicClient('a client id'));
+    }
 }

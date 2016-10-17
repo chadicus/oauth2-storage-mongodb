@@ -17,7 +17,10 @@ use MongoDB\Database;
  *
  * @author Julien Chaumond <chaumond@gmail.com>
  */
-final class MongoDB implements AuthorizationCodeInterface, AccessTokenInterface
+final class MongoDB implements
+    AuthorizationCodeInterface,
+    AccessTokenInterface,
+    ClientCredentialsInterface
 {
     /**
      * MongoDB\Database instance.
@@ -34,6 +37,13 @@ final class MongoDB implements AuthorizationCodeInterface, AccessTokenInterface
     private $config;
 
     /**
+     * The salt for the encryption.  The $2y$ part specifies that this is blowfish encryption.
+     *
+     * @var string
+     */
+    const SALT = '$2y$07$5b9a5c43cdf9c3fa1dcfb4de4f379858';
+
+    /**
      * Construct a new instance of the MongoDB storage.
      *
      * @param Database $database A mongo database instance.
@@ -46,6 +56,7 @@ final class MongoDB implements AuthorizationCodeInterface, AccessTokenInterface
             [
                 'code_table' => 'oauth_authorization_codes',
                 'access_token_table' => 'oauth_access_tokens',
+                'client_table' => 'oauth_clients',
             ],
             $config
         );
@@ -204,6 +215,124 @@ final class MongoDB implements AuthorizationCodeInterface, AccessTokenInterface
                 'scope' => $scope,
             ]
         );
+    }
+
+    /**
+     * Get client details corresponding client_id.
+     *
+     * OAuth says we should store request URIs for each registered client.
+     * Implement this function to grab the stored URI for a given client id.
+     *
+     * @param string $clientId Client identifier to be check with.
+     *
+     * @return array|false
+     *               Client details. The only mandatory key in the array is "redirect_uri".
+     *               This function MUST return FALSE if the given client does not exist or is
+     *               invalid. "redirect_uri" can be space-delimited to allow for multiple valid uris.
+     *               <code>
+     *               return array(
+     *               "redirect_uri" => REDIRECT_URI,      // REQUIRED redirect_uri registered for the client
+     *               "client_id"    => CLIENT_ID,         // OPTIONAL the client id
+     *               "grant_types"  => GRANT_TYPES,       // OPTIONAL an array of restricted grant types
+     *               "user_id"      => USER_ID,           // OPTIONAL the user identifier associated with this client
+     *               "scope"        => SCOPE,             // OPTIONAL the scopes allowed for this client
+     *               );
+     *               </code>
+     *
+     * @ingroup oauth2_section_4
+     */
+    public function getClientDetails($clientId)
+    {
+        $document = $this->getCollection('client_table')->findOne(['_id' => $clientId]);
+        if ($document === null) {
+            return false;
+        }
+
+        return [
+            'redirect_uri' => implode(' ', $document['redirect_uri']),
+            'client_id' => $clientId,
+            'grant_types' => $document['grant_types'],
+            'user_id' => $document['user_id'],
+            'scope' => empty($document['scope']) ? null : implode(' ', $document['scope']),
+        ];
+    }
+
+    /**
+     * Get the scope associated with this client.
+     *
+     * @param string $clientId Client identifier to be check with.
+     *
+     * @return string The space-delineated scope list for the specified client_id.
+     */
+    public function getClientScope($clientId)
+    {
+        $client = $this->getClientDetails($clientId);
+        if ($client === false) {
+            return '';
+        }
+
+        return empty($client['scope']) ? '' : $client['scope'];
+    }
+
+    /**
+     * Check restricted grant types of corresponding client identifier.
+     *
+     * @param string $clientId  Client identifier to be check with.
+     * @param string $grantType Grant type to be check with.
+     *
+     * @return boolean Returns TRUE if the grant type is supported by this client identifier, and otherwise FALSE.
+     *
+     * @ingroup oauth2_section_4
+     */
+    public function checkRestrictedGrantType($clientId, $grantType)
+    {
+        $client = $this->getClientDetails($clientId);
+        return $client === false ? false : in_array($grantType, $client['grant_types']);
+    }
+
+    /**
+     * Make sure that the client credentials is valid.
+     *
+     * @param string $clientId     Client identifier to be check with.
+     * @param string $clientSecret OPTIONAL If a secret is required, check that they've given the right one.
+     *
+     * @return boolean Returns TRUE if the client credentials are valid, and MUST return FALSE if it isn't.
+     *
+     * @see http://tools.ietf.org/html/rfc6749#section-3.1
+     *
+     * @ingroup oauth2_section_3
+     */
+    public function checkClientCredentials($clientId, $clientSecret = null)
+    {
+        $document = $this->getCollection('client_table')->findOne(['_id' => $clientId]);
+        if ($document === null) {
+            return false;
+        }
+
+        return crypt($clientId . $clientSecret, self::SALT) === $document['client_secret'];
+    }
+
+    /**
+     * Determine if the client is a "public" client, and therefore does not require passing credentials for certain
+     * grant types.
+     *
+     * @param string $clientId Client identifier to be check with.
+     *
+     * @return boolean Returns TRUE if the client is public, and FALSE if it isn't.
+     *
+     * @see http://tools.ietf.org/html/rfc6749#section-2.3
+     * @see https://github.com/bshaffer/oauth2-server-php/issues/257
+     *
+     * @ingroup oauth2_section_2
+     */
+    public function isPublicClient($clientId)
+    {
+        $document = $this->getCollection('client_table')->findOne(['_id' => $clientId]);
+        if ($document === null) {
+            return false;
+        }
+
+        return empty($document['client_secret']);
     }
 
     /**
