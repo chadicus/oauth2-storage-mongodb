@@ -107,7 +107,7 @@ final class MongoDB implements
             'user_id' => $document['user_id'],
             'expires' => $document['expires']->toDateTime()->getTimestamp(),
             'redirect_uri' => $document['redirect_uri'],
-            'scope' => $document['scope'],
+            'scope' => empty($document['scope']) ? null : implode(' ', $document['scope']),
             'id_token' => $document['id_token'],
         ];
     }
@@ -144,7 +144,7 @@ final class MongoDB implements
                 'user_id' => $userId,
                 'redirect_uri' => $redirectUri,
                 'expires' => new UTCDateTime($expires * 1000),
-                'scope' => $scope,
+                'scope' => explode(' ', $scope),
                 'id_token' => $idToken,
             ]
         );
@@ -197,7 +197,7 @@ final class MongoDB implements
             'expires' => $document['expires']->toDateTime()->getTimestamp(),
             'client_id' => $document['client_id'],
             'user_id' => $document['user_id'],
-            'scope' => $document['scope'],
+            'scope' => empty($document['scope']) ? null : implode(' ', $document['scope']),
         ];
     }
 
@@ -224,7 +224,7 @@ final class MongoDB implements
                 'client_id' => $clientId,
                 'user_id' => $userId,
                 'expires' => new UTCDateTime($expires * 1000),
-                'scope' => $scope,
+                'scope' => explode(' ', $scope),
             ]
         );
     }

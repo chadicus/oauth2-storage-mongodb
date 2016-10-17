@@ -33,7 +33,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                 'user_id' => 'a user id',
                 'expires' => $expires,
                 'redirect_uri' => 'a redirect uri',
-                'scope' => 'a scope',
+                'scope' => ['aScope', 'anotherScope'],
                 'id_token' => 'an id token',
             ]
         );
@@ -54,7 +54,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                 'user_id' => 'a user id',
                 'expires' => $expires->toDateTime()->getTimestamp(),
                 'redirect_uri' => 'a redirect uri',
-                'scope' => 'a scope',
+                'scope' => 'aScope anotherScope',
                 'id_token' => 'an id token',
             ],
             $storage->getAuthorizationCode($code)
@@ -79,7 +79,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
             'user_id' => 'a user id',
             'expires' => $expires,
             'redirect_uri' => 'a redirect uri',
-            'scope' => 'a scope',
+            'scope' => ['aScope', 'anotherScope'],
             'id_token' => 'an id token',
         ];
 
@@ -99,7 +99,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                 'user_id' => 'a user id',
                 'expires' => $expires->toDateTime()->getTimestamp(),
                 'redirect_uri' => 'a redirect uri',
-                'scope' => 'a scope',
+                'scope' => 'aScope anotherScope',
                 'id_token' => 'an id token',
             ],
             $storage->getAuthorizationCode($code)
@@ -151,7 +151,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                     'user_id' => 'a user id',
                     'redirect_uri' => 'a redirect uri',
                     'expires' => new UTCDateTime($expires * 1000),
-                    'scope' => 'a scope',
+                    'scope' => ['aScope'],
                     'id_token' => null,
                 ]
             )
@@ -163,7 +163,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
         )->will($this->returnValue($collectionMock));
 
         $storage = new MongoDB($databaseMock, ['code_table' => 'oauth_authorization_codes']);
-        $storage->setAuthorizationCode($code, 'a client id', 'a user id', 'a redirect uri', $expires, 'a scope');
+        $storage->setAuthorizationCode($code, 'a client id', 'a user id', 'a redirect uri', $expires, 'aScope');
     }
 
     /**
@@ -209,7 +209,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                 'client_id' => 'a client id',
                 'user_id' => 'a user id',
                 'expires' => $expires,
-                'scope' => 'a scope',
+                'scope' => ['aScope'],
             ]
         );
 
@@ -228,7 +228,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                 'expires' => $expires->toDateTime()->getTimestamp(),
                 'client_id' => 'a client id',
                 'user_id' => 'a user id',
-                'scope' => 'a scope',
+                'scope' => 'aScope',
             ],
             $storage->getAccessToken($token)
         );
@@ -278,7 +278,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                     'client_id' => 'a client id',
                     'user_id' => 'a user id',
                     'expires' => new UTCDateTime($expires * 1000),
-                    'scope' => 'a scope',
+                    'scope' => ['aScope', 'anotherScope'],
                 ]
             )
         );
@@ -289,7 +289,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
         )->will($this->returnValue($collectionMock));
 
         $storage = new MongoDB($databaseMock);
-        $storage->setAccessToken($token, 'a client id', 'a user id', $expires, 'a scope');
+        $storage->setAccessToken($token, 'a client id', 'a user id', $expires, 'aScope anotherScope');
     }
 
     /**
