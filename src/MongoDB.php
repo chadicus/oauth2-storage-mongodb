@@ -22,7 +22,8 @@ final class MongoDB implements
     AccessTokenInterface,
     ClientCredentialsInterface,
     UserCredentialsInterface,
-    RefreshTokenInterface
+    RefreshTokenInterface,
+    JwtBearerInterface
 {
     /**
      * MongoDB\Database instance.
@@ -61,6 +62,8 @@ final class MongoDB implements
                 'client_table' => 'oauth_clients',
                 'user_table' => 'oauth_users',
                 'refresh_token_table' => 'oauth_refresh_tokens',
+                'jti_table' => 'oauth_jti',
+                'jwt_table' => 'oauth_jwt',
             ],
             $config
         );
@@ -487,6 +490,87 @@ final class MongoDB implements
     public function unsetRefreshToken($token)
     {
         $this->getCollection('refresh_token_table')->deleteOne(['_id' => $token]);
+    }
+
+    /**
+     * Get the public key associated with a client_id
+     *
+     * @param string $clientId Client identifier to be checked with.
+     * @param string $subject  The subject to be checked with.
+     *
+     * @return string Return the public key for the client_id if it exists, and MUST return FALSE if it doesn't.
+     */
+    public function getClientKey($clientId, $subject)
+    {
+        $document = $this->getCollection('jwt_table')->findOne(['client_id' => $clientId, 'subject' => $subject]);
+        if ($document === null) {
+            return false;
+        }
+
+        return $document['public_key'];
+    }
+
+    /**
+     * Get a jti (JSON token identifier) by matching against the client_id, subject, audience and expiration.
+     *
+     * @param string  $clientId Client identifier to match.
+     * @param string  $subject  The subject to match.
+     * @param string  $audience The audience to match.
+     * @param integer $expires  The expiration of the jti.
+     * @param string  $jti      The jti to match.
+     *
+     * @return array An associative array as below, and return NULL if the jti does not exist.
+     * - issuer: Stored client identifier.
+     * - subject: Stored subject.
+     * - audience: Stored audience.
+     * - expires: Stored expires in unix timestamp.
+     * - jti: The stored jti.
+     */
+    public function getJti($clientId, $subject, $audience, $expires, $jti)
+    {
+        $query = [
+            'client_id' => $clientId,
+            'subject' => $subject,
+            'audience' => $audience,
+            'expires' => new UTCDateTime($expires * 1000),
+            'jti' => $jti,
+        ];
+        $document = $this->getCollection('jti_table')->findOne($query);
+        if ($document === null) {
+            return null;
+        }
+
+        return [
+            'issuer' => $clientId,
+            'subject' => $subject,
+            'audience' => $audience,
+            'expires' => $expires,
+            'jti' => $jti,
+        ];
+    }
+
+    /**
+     * Store a used jti so that we can check against it to prevent replay attacks.
+     *
+     * @param string  $clientId Client identifier to insert.
+     * @param string  $subject  The subject to insert.
+     * @param string  $audience The audience to insert.
+     * @param integer $expires  The expiration of the jti.
+     * @param string  $jti      The jti to insert.
+     *
+     * @return void
+     */
+    public function setJti($clientId, $subject, $audience, $expires, $jti)
+    {
+        $this->getCollection('jti_table')->insertOne(
+            [
+                'client_id' => $clientId,
+                'subject' => $subject,
+                'audience' => $audience,
+                'expires' => new UTCDateTime($expires * 1000),
+                'jti' => $jti,
+            ]
+        );
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace OAuth2Test\Storage;
 
 use OAuth2\Storage\MongoDB;
+use MongoDB\BSON\ObjectID;
 use MongoDB\BSON\UTCDateTime;
 use MongoDB\Model\BSONDocument;
 
@@ -854,5 +855,163 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
 
         $storage = new MongoDB($databaseMock);
         $storage->unsetRefreshToken($token);
+    }
+
+    /**
+     * Verify basic behavior of getClientKey().
+     *
+     * @test
+     * @covers ::getClientKey
+     *
+     * @return void
+     */
+    public function getClientKey()
+    {
+        $key = md5(microtime(true));
+        $document = new BSONDocument(
+            [
+                '_id' => new ObjectID(),
+                'client_id' => 'a client id',
+                'subject' => 'a subject',
+                'public_key' => $key,
+            ]
+        );
+
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['client_id' => 'a client id', 'subject' => 'a subject'])
+        )->will($this->returnValue($document));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_jwt')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+        $this->assertSame($key, $storage->getClientKey('a client id', 'a subject'));
+    }
+
+    /**
+     * Verify basic behavior of getClientKey() when no document is found.
+     *
+     * @test
+     * @covers ::getClientKey
+     *
+     * @return void
+     */
+    public function getClientKeyNullResult()
+    {
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['client_id' => 'a client id', 'subject' => 'a subject'])
+        )->will($this->returnValue(null));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_jwt')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+        $this->assertFalse($storage->getClientKey('a client id', 'a subject'));
+    }
+
+    /**
+     * Verify basic behavior of getJti().
+     *
+     * @test
+     * @covers ::getJti
+     *
+     * @return void
+     */
+    public function getJti()
+    {
+        $expires = strtotime('+1 hour');
+        $document = new BSONDocument(
+            [
+                'client_id' => 'a client id',
+                'subject' => 'a subject',
+                'audience' => 'an audience',
+                'expires' => new UTCDateTime($expires * 1000),
+                'jti' => 'a jti',
+            ]
+        );
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo($document->getArrayCopy())
+        )->will($this->returnValue($document));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_jti')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+        $storage->getJti('a client id', 'a subject', 'an audience', $expires, 'a jti');
+    }
+
+    /**
+     * Verify behavior of getJti() with null document.
+     *
+     * @test
+     * @covers ::getJti
+     *
+     * @return void
+     */
+    public function getJtiNullResult()
+    {
+        $expires = strtotime('+1 hour');
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(
+                [
+                    'client_id' => 'a client id',
+                    'subject' => 'a subject',
+                    'audience' => 'an audience',
+                    'expires' => new UTCDateTime($expires * 1000),
+                    'jti' => 'a jti',
+                ]
+            )
+        )->will($this->returnValue(null));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_jti')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+        $this->assertNull($storage->getJti('a client id', 'a subject', 'an audience', $expires, 'a jti'));
+    }
+
+    /**
+     * Verify basic behavior of setJti().
+     *
+     * @test
+     * @covers ::setJti()
+     *
+     * @return void
+     */
+    public function setJti()
+    {
+        $expires = strtotime('+1 hour');
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('insertOne')->with(
+            $this->equalTo(
+                [
+                    'client_id' => 'a client id',
+                    'subject' => 'a subject',
+                    'audience' => 'an audience',
+                    'expires' => new UTCDateTime($expires * 1000),
+                    'jti' => 'a jti',
+                ]
+            )
+        );
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_jti')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+        $storage->setJti('a client id', 'a subject', 'an audience', $expires, 'a jti');
     }
 }
