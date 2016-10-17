@@ -21,7 +21,8 @@ final class MongoDB implements
     AuthorizationCodeInterface,
     AccessTokenInterface,
     ClientCredentialsInterface,
-    UserCredentialsInterface
+    UserCredentialsInterface,
+    RefreshTokenInterface
 {
     /**
      * MongoDB\Database instance.
@@ -59,6 +60,7 @@ final class MongoDB implements
                 'access_token_table' => 'oauth_access_tokens',
                 'client_table' => 'oauth_clients',
                 'user_table' => 'oauth_users',
+                'refresh_token_table' => 'oauth_refresh_tokens',
             ],
             $config
         );
@@ -393,6 +395,98 @@ final class MongoDB implements
             'user_id' => $username,
             'scope' => empty($document['scope']) ? null : implode(' ', $document['scope']),
         ];
+    }
+
+    /**
+     * Grant refresh access tokens.
+     *
+     * Retrieve the stored data for the given refresh token.
+     *
+     * Required for OAuth2::GRANT_TYPE_REFRESH_TOKEN.
+     *
+     * @param string $token Refresh token to be check with.
+     *
+     * @return array An associative array as below, and NULL if the refresh_token is invalid.
+     * - refresh_token: Refresh token identifier.
+     * - client_id: Client identifier.
+     * - user_id: User identifier.
+     * - expires: Expiration unix timestamp, or 0 if the token doesn't expire.
+     * - scope: (optional) Scope values in space-separated string.
+     *
+     * @see http://tools.ietf.org/html/rfc6749#section-6
+     *
+     * @ingroup oauth2_section_6
+     */
+    public function getRefreshToken($token)
+    {
+        $document = $this->getCollection('refresh_token_table')->findOne(['_id' => $token]);
+        if ($document === null) {
+            return null;
+        }
+
+        return [
+            'refresh_token' => $token,
+            'client_id' => $document['client_id'],
+            'user_id' => $document['user_id'],
+            'expires' => $document['expires']->toDateTime()->getTimestamp(),
+            'scope' => empty($document['scope']) ? null : implode(' ', $document['scope']),
+        ];
+    }
+
+    /**
+     * Take the provided refresh token values and store them somewhere.
+     *
+     * This function should be the storage counterpart to getRefreshToken().
+     *
+     * If storage fails for some reason, we're not currently checking for
+     * any sort of success/failure, so you should bail out of the script
+     * and provide a descriptive fail message.
+     *
+     * Required for OAuth2::GRANT_TYPE_REFRESH_TOKEN.
+     *
+     * @param string  $token    Refresh token to be stored.
+     * @param string  $clientId Client identifier to be stored.
+     * @param string  $userId   User identifier to be stored.
+     * @param integer $expires  Expiration timestamp to be stored. 0 if the token doesn't expire.
+     * @param string  $scope    OPTIONAL Scopes to be stored in space-separated string.
+     *
+     * @return void
+     *
+     * @ingroup oauth2_section_6
+     */
+    public function setRefreshToken($token, $clientId, $userId, $expires, $scope = null)
+    {
+        $this->getCollection('refresh_token_table')->insertOne(
+            [
+                '_id' => $token,
+                'client_id' => $clientId,
+                'user_id' => $userId,
+                'expires' => new UTCDateTime($expires * 1000),
+                'scope' => explode(' ', $scope),
+            ]
+        );
+    }
+
+    /**
+     * Expire a used refresh token.
+     *
+     * This is not explicitly required in the spec, but is almost implied.
+     * After granting a new refresh token, the old one is no longer useful and
+     * so should be forcibly expired in the data store so it can't be used again.
+     *
+     * If storage fails for some reason, we're not currently checking for
+     * any sort of success/failure, so you should bail out of the script
+     * and provide a descriptive fail message.
+     *
+     * @param string $token Refresh token to be expired.
+     *
+     * @return void
+     *
+     * @ingroup oauth2_section_6
+     */
+    public function unsetRefreshToken($token)
+    {
+        $this->getCollection('refresh_token_table')->deleteOne(['_id' => $token]);
     }
 
     /**

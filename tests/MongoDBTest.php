@@ -722,4 +722,137 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
 
         $this->assertFalse($storage->checkUserCredentials('a username', ' a password'));
     }
+
+    /**
+     * Verify basic behavior of getRefreshToken().
+     *
+     * @test
+     * @covers ::getRefreshToken
+     *
+     * @return void
+     */
+    public function getRefreshToken()
+    {
+        $token = md5(microtime(true));
+        $expires = new UTCDateTime((int)(microtime(true) * 1000));
+        $document = new BSONDocument(
+            [
+                '_id' => $token,
+                'client_id' => 'a client id',
+                'user_id' => 'a user id',
+                'scope' => [],
+                'extra' => 'extra data from mongo',
+                'expires' => $expires,
+            ]
+        );
+
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => $token])
+        )->will($this->returnValue($document));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_refresh_tokens')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertSame(
+            [
+                'refresh_token' => $token,
+                'client_id' => 'a client id',
+                'user_id' => 'a user id',
+                'expires' => $expires->toDateTime()->getTimeStamp(),
+                'scope' => null,
+            ],
+            $storage->getRefreshToken($token)
+        );
+    }
+
+    /**
+     * Verify behavior of getRefreshToken() when token is not found.
+     *
+     * @test
+     * @covers ::getRefreshToken
+     *
+     * @return void
+     */
+    public function getRefreshTokenNotFound()
+    {
+        $token = md5(microtime(true));
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => $token])
+        )->will($this->returnValue(null));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_refresh_tokens')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertNull($storage->getRefreshToken($token));
+    }
+
+    /**
+     * Verify basic behavior of setRefreshToken().
+     *
+     * @test
+     * @covers ::setRefreshToken
+     *
+     * @return void
+     */
+    public function setRefreshToken()
+    {
+        $token = md5(microtime(true));
+        $expires = strtotime('+1 hour');
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('insertOne')->with(
+            $this->equalTo(
+                [
+                    '_id' => $token,
+                    'client_id' => 'a client id',
+                    'user_id' => 'a user id',
+                    'expires' => new UTCDateTime($expires * 1000),
+                    'scope' => ['aScope', 'anotherScope'],
+                ]
+            )
+        );
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_refresh_tokens')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $storage->setRefreshToken($token, 'a client id', 'a user id', $expires, 'aScope anotherScope');
+    }
+
+    /**
+     * Verify basic behavior of unsetRefreshToken().
+     *
+     * @test
+     * @covers ::unsetRefreshToken
+     *
+     * @return void
+     */
+    public function unsetRefreshToken()
+    {
+        $token = md5(microtime(true));
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('deleteOne')->with(
+            $this->equalTo(['_id' => $token])
+        );
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_refresh_tokens')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+        $storage->unsetRefreshToken($token);
+    }
 }
