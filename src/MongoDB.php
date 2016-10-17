@@ -4,6 +4,7 @@ namespace OAuth2\Storage;
 
 use MongoDB\BSON\UTCDateTime;
 use MongoDB\Database;
+use OAuth2\OpenID\Storage\AuthorizationCodeInterface as OpenIDAuthorizationCodeInterface;
 
 /**
  * Simple MongoDB storage for all storage types
@@ -23,7 +24,8 @@ final class MongoDB implements
     ClientCredentialsInterface,
     UserCredentialsInterface,
     RefreshTokenInterface,
-    JwtBearerInterface
+    JwtBearerInterface,
+    OpenIDAuthorizationCodeInterface
 {
     /**
      * MongoDB\Database instance.
@@ -106,6 +108,7 @@ final class MongoDB implements
             'expires' => $document['expires']->toDateTime()->getTimestamp(),
             'redirect_uri' => $document['redirect_uri'],
             'scope' => $document['scope'],
+            'id_token' => $document['id_token'],
         ];
     }
 
@@ -126,12 +129,13 @@ final class MongoDB implements
      * @param string  $redirectUri Redirect URI(s) to be stored in a space-separated string.
      * @param integer $expires     Expiration to be stored as a Unix timestamp.
      * @param string  $scope       OPTIONAL Scopes to be stored in space-separated string.
+     * @param string  $idToken     OPTIONAL the OpenID Connect id_token.
      *
      * @return void
      *
      * @ingroup oauth2_section_4
      */
-    public function setAuthorizationCode($code, $clientId, $userId, $redirectUri, $expires, $scope = null)
+    public function setAuthorizationCode($code, $clientId, $userId, $redirectUri, $expires, $scope = null, $idToken = null)
     {
         $this->getCollection('code_table')->insertOne(
             [
@@ -141,6 +145,7 @@ final class MongoDB implements
                 'redirect_uri' => $redirectUri,
                 'expires' => new UTCDateTime($expires * 1000),
                 'scope' => $scope,
+                'id_token' => $idToken,
             ]
         );
     }
