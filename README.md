@@ -24,4 +24,4 @@ $storage->setClientDetails('student', 's3cr3t');
 ```
 
 ## Usage
-The Mongo storage engine implements all the standard Storage Interfaces supported in this library. See [interfaces](http://bshaffer.github.io/oauth2-server-php-docs/storage/custom) for more information.
+The MongoDB storage engine implements all the standard Storage Interfaces supported in this library. See [interfaces](http://bshaffer.github.io/oauth2-server-php-docs/storage/custom) for more information.
