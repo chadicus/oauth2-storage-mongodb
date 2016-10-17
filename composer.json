@@ -19,6 +19,7 @@
         "satooshi/php-coveralls": "^0.7.1"
     },
     "require": {
+        "php": "^5.4 || ^7.0",
         "bshaffer/oauth2-server-php": "^1.8",
         "mongodb/mongodb": "^1.0"
     },
