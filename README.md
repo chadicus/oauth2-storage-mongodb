@@ -1,6 +1,6 @@
 ## OAuth2\Storage\MongoDB
 
-Uses the [Mongo](https://www.mongodb.com/) Document Database for storing and retrieving objects in OAuth.
+This library uses the [Mongo](https://www.mongodb.com/) document database for storing and retrieving objects in an [OAuth2 Server](http://bshaffer.github.io/oauth2-server-php-docs/) application.
 
 This implementation requires the [MongoDB Extension](http://us3.php.net/manual/en/set.mongodb.php).
 
