@@ -1019,4 +1019,23 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
         $storage = new MongoDB($databaseMock);
         $storage->setJti('a client id', 'a subject', 'an audience', $expires, 'a jti');
     }
+
+    /**
+     * Verify basic behavior of encryptCredentials().
+     *
+     * @test
+     * @covers ::encryptCredentials
+     *
+     * @return void
+     */
+    public function encryptCredentials()
+    {
+        $identifier = 'identifier';
+        $secret = 'secret';
+
+        $this->assertSame(
+            crypt($identifier . $secret, MongoDB::SALT),
+            MongoDB::encryptCredentials($identifier, $secret)
+        );
+    }
 }
