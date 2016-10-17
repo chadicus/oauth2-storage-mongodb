@@ -20,7 +20,8 @@ use MongoDB\Database;
 final class MongoDB implements
     AuthorizationCodeInterface,
     AccessTokenInterface,
-    ClientCredentialsInterface
+    ClientCredentialsInterface,
+    UserCredentialsInterface
 {
     /**
      * MongoDB\Database instance.
@@ -57,6 +58,7 @@ final class MongoDB implements
                 'code_table' => 'oauth_authorization_codes',
                 'access_token_table' => 'oauth_access_tokens',
                 'client_table' => 'oauth_clients',
+                'user_table' => 'oauth_users',
             ],
             $config
         );
@@ -309,7 +311,7 @@ final class MongoDB implements
             return false;
         }
 
-        return crypt($clientId . $clientSecret, self::SALT) === $document['client_secret'];
+        return self::encryptCredentials($clientId, $clientSecret) === $document['client_secret'];
     }
 
     /**
@@ -336,6 +338,64 @@ final class MongoDB implements
     }
 
     /**
+     * Grant access tokens for basic user credentials.
+     *
+     * Check the supplied username and password for validity.
+     *
+     * You can also use the $client_id param to do any checks required based
+     * on a client, if you need that.
+     *
+     * Required for OAuth2::GRANT_TYPE_USER_CREDENTIALS.
+     *
+     * @param string $username Username to be check with.
+     * @param string $password Password to be check with.
+     *
+     * @return boolean Returns TRUE if the username and password are valid, and FALSE if it isn't.
+     * Moreover, if the username and password are valid, and you want to
+     *
+     * @see http://tools.ietf.org/html/rfc6749#section-4.3
+     *
+     * @ingroup oauth2_section_4
+     */
+    public function checkUserCredentials($username, $password)
+    {
+        $document = $this->getCollection('user_table')->findOne(['_id' => $username]);
+        if ($document === null) {
+            return false;
+        }
+
+        return self::encryptCredentials($username, $password) === $document['password'];
+    }
+
+    /**
+     * Get the details for a specific user.
+     *
+     * @param string $username The user identifier for which the details will be returned.
+     *
+     * @return array The associated "user_id" and optional "scope" values.
+     * This function MUST return FALSE if the requested user does not exist or is
+     * invalid. "scope" is a space-separated list of restricted scopes.
+     * @code
+     * return array(
+     *     "user_id"  => USER_ID,    // REQUIRED user_id to be stored with the authorization code or access token
+     *     "scope"    => SCOPE       // OPTIONAL space-separated list of restricted scopes
+     * );
+     * @endcode
+     */
+    public function getUserDetails($username)
+    {
+        $document = $this->getCollection('user_table')->findOne(['_id' => $username]);
+        if ($document === null) {
+            return false;
+        }
+
+        return [
+            'user_id' => $username,
+            'scope' => empty($document['scope']) ? null : implode(' ', $document['scope']),
+        ];
+    }
+
+    /**
      * Helper method to obtain a mongo collection.
      *
      * @param string $key The index of the config containing the collection name.
@@ -345,5 +405,20 @@ final class MongoDB implements
     private function getCollection($key)
     {
         return $this->database->selectCollection($this->config[$key]);
+    }
+
+    /**
+     * Encrypts the credentials and returns the result.
+     *
+     * @param string $identifier The identifier/username.
+     * @param string $secret     The secret/password.
+     *
+     * @return string The encrypted credentials.
+     *
+     * @throws \UnexpectedValueException Thrown if unable to encrypt the credentials.
+     */
+    public static function encryptCredentials($identifier, $secret)
+    {
+        return crypt("{$identifier}{$secret}", self::SALT);
     }
 }

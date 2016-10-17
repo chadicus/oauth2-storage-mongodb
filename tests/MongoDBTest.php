@@ -497,7 +497,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                 'user_id' => 'a user id',
                 'scope' => ['aScope', 'anotherScope'],
                 'grant_types' => ['grant type 1', 'grant type 2'],
-                'client_secret' => crypt('a client id a secret', MongoDB::SALT),
+                'client_secret' => MongoDB::encryptCredentials('a client id', ' a secret'),
             ]
         );
 
@@ -600,5 +600,126 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
         $storage = new MongoDB($databaseMock);
 
         $this->assertFalse($storage->isPublicClient('a client id'));
+    }
+
+    /**
+     * Verify basic behavior of getUserDetails().
+     *
+     * @test
+     * @covers ::getUserDetails
+     *
+     * @return void
+     */
+    public function getUserDetails()
+    {
+        $document = new BSONDocument(
+            [
+                '_id' => 'a user id',
+                'scope' => ['aScope', 'anotherScope'],
+                'extra' => 'extra data from mongo',
+            ]
+        );
+
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => 'a user id'])
+        )->will($this->returnValue($document));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_users')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertSame(
+            [
+                'user_id' => 'a user id',
+                'scope' => 'aScope anotherScope',
+            ],
+            $storage->getUserDetails('a user id')
+        );
+    }
+
+    /**
+     * Verify behavior of getUserDetails() when no user is found.
+     *
+     * @test
+     * @covers ::getUserDetails
+     *
+     * @return void
+     */
+    public function getUserDetailsUsernotFound()
+    {
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => 'a user id'])
+        )->will($this->returnValue(null));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_users')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertFalse($storage->getUserDetails('a user id'));
+    }
+
+    /**
+     * Verify basic behavior of checkUserCredentials().
+     *
+     * @test
+     * @covers ::checkUserCredentials
+     *
+     * @return void
+     */
+    public function checkUserCredentials()
+    {
+        $document = new BSONDocument(
+            [
+                '_id' => 'a username',
+                'password' => MongoDB::encryptCredentials('a username', ' a password'),
+            ]
+        );
+
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => 'a username'])
+        )->will($this->returnValue($document));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_users')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertTrue($storage->checkUserCredentials('a username', ' a password'));
+    }
+
+    /**
+     * Verify behavior of checkUserCredentials() when no user is found.
+     *
+     * @test
+     * @covers ::checkUserCredentials
+     *
+     * @return void
+     */
+    public function checkUserCredentialsUserNotFound()
+    {
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => 'a username'])
+        )->will($this->returnValue(null));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_users')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertFalse($storage->checkUserCredentials('a username', ' a password'));
     }
 }
