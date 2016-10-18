@@ -275,7 +275,7 @@ final class MongoDB implements
      * @param string $clientId     The client id.
      * @param string $clientSecret OPTIONAL the client secret.
      * @param string $redirectUri  REQUIRED redirect_uri registered for the client.
-     * @param string $grantTypes   OPTIONAL an array of restricted grant types.
+     * @param array  $grantTypes   OPTIONAL an array of restricted grant types.
      * @param string $scope        OPTIONAL the scopes allowed for this client.
      * @param string $userId       OPTIONAL the user identifier associated with this client.
      *
