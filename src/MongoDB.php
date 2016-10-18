@@ -291,7 +291,7 @@ final class MongoDB implements
                 '$set' => [
                     'client_secret' => $clientSecret !== null ? self::encryptCredentials($clientId, $clientSecret) : null,
                     'redirect_uri' => $redirectUri,
-                    'grant_types' => $grantTypes,
+                    'grant_types' => implode(' ', $grantTypes),
                     'scope' => $scope,
                     'user_id' => $userId,
                 ]
