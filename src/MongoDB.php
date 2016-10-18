@@ -270,6 +270,37 @@ final class MongoDB implements
     }
 
     /**
+     * Set the details for a client
+     *
+     * @param string $clientId     The client id.
+     * @param string $clientSecret OPTIONAL the client secret.
+     * @param string $redirectUri  REQUIRED redirect_uri registered for the client.
+     * @param string $grantTypes   OPTIONAL an array of restricted grant types.
+     * @param string $scope        OPTIONAL the scopes allowed for this client.
+     * @param string $userId       OPTIONAL the user identifier associated with this client.
+     *
+     * @return void
+     */
+    public function setClientDetails($clientId, $clientSecret = null, $redirectUri = null, $grantTypes = null, $scope = null, $userId = null)
+    {
+        $this->getCollection('client_table')->updateOne(
+            [
+                '_id' => $clientId,
+            ],
+            [
+                '$set' => [
+                    'client_secret' => $clientSecret !== null ? self::encryptCredentials($clientId, $clientSecret) : null,
+                    'redirect_uri' => $redirectUri,
+                    'grant_types' => $grantTypes,
+                    'scope' => explode(' ', $scope),
+                    'user_id' => $userId,
+                ]
+            ],
+            ['upsert' => true]
+        );
+    }
+
+    /**
      * Get the scope associated with this client.
      *
      * @param string $clientId Client identifier to be check with.
