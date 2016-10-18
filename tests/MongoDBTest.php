@@ -33,7 +33,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                 'user_id' => 'a user id',
                 'expires' => $expires,
                 'redirect_uri' => 'a redirect uri',
-                'scope' => ['aScope', 'anotherScope'],
+                'scope' => 'aScope anotherScope',
                 'id_token' => 'an id token',
             ]
         );
@@ -79,7 +79,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
             'user_id' => 'a user id',
             'expires' => $expires,
             'redirect_uri' => 'a redirect uri',
-            'scope' => ['aScope', 'anotherScope'],
+            'scope' => 'aScope anotherScope',
             'id_token' => 'an id token',
         ];
 
@@ -151,7 +151,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                     'user_id' => 'a user id',
                     'redirect_uri' => 'a redirect uri',
                     'expires' => new UTCDateTime($expires * 1000),
-                    'scope' => ['aScope'],
+                    'scope' => 'aScope',
                     'id_token' => null,
                 ]
             )
@@ -209,7 +209,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                 'client_id' => 'a client id',
                 'user_id' => 'a user id',
                 'expires' => $expires,
-                'scope' => ['aScope'],
+                'scope' => 'aScope',
             ]
         );
 
@@ -278,7 +278,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                     'client_id' => 'a client id',
                     'user_id' => 'a user id',
                     'expires' => new UTCDateTime($expires * 1000),
-                    'scope' => ['aScope', 'anotherScope'],
+                    'scope' => 'aScope anotherScope',
                 ]
             )
         );
@@ -305,10 +305,10 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
         $document = new BSONDocument(
             [
                 '_id' => 'a client id',
-                'redirect_uri' => ['redirectUriOne', 'redirectUriTwo'],
+                'redirect_uri' => 'redirectUriOne redirectUriTwo',
                 'user_id' => 'a user id',
-                'scope' => ['aScope', 'anotherScope'],
-                'grant_types' => ['grant type 1', 'grant type 2'],
+                'scope' => 'aScope anotherScope',
+                'grant_types' => 'grant_type1 grant_type2',
             ]
         );
 
@@ -326,7 +326,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
             [
                 'redirect_uri' => 'redirectUriOne redirectUriTwo',
                 'client_id' => 'a client id',
-                'grant_types' => ['grant type 1', 'grant type 2'],
+                'grant_types' => ['grant_type1', 'grant_type2'],
                 'user_id' => 'a user id',
                 'scope' => 'aScope anotherScope',
             ],
@@ -369,10 +369,10 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
         $document = new BSONDocument(
             [
                 '_id' => 'a client id',
-                'redirect_uri' => ['redirectUriOne', 'redirectUriTwo'],
+                'redirect_uri' => 'redirectUriOne redirectUriTwo',
                 'user_id' => 'a user id',
-                'scope' => ['aScope', 'anotherScope'],
-                'grant_types' => ['grant type 1', 'grant type 2'],
+                'scope' => 'aScope anotherScope',
+                'grant_types' => 'grant_type1 grant_type2',
             ]
         );
 
@@ -404,10 +404,10 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
         $document = new BSONDocument(
             [
                 '_id' => 'a client id',
-                'redirect_uri' => ['redirectUriOne', 'redirectUriTwo'],
+                'redirect_uri' => 'redirectUriOne redirectUriTwo',
                 'user_id' => 'a user id',
                 'scope' => null,
-                'grant_types' => ['grant type 1', 'grant type 2'],
+                'grant_types' => 'grant_type1 grant_type2',
             ]
         );
 
@@ -464,10 +464,10 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
         $document = new BSONDocument(
             [
                 '_id' => 'a client id',
-                'redirect_uri' => ['redirectUriOne', 'redirectUriTwo'],
+                'redirect_uri' => 'redirectUriOne redirectUriTwo',
                 'user_id' => 'a user id',
-                'scope' => ['aScope', 'anotherScope'],
-                'grant_types' => ['grant type 1', 'grant type 2'],
+                'scope' => 'aScope anotherScope',
+                'grant_types' => 'grant_type1 grant_type2',
             ]
         );
 
@@ -483,7 +483,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
 
         $storage = new MongoDB($databaseMock);
 
-        $this->assertTrue($storage->checkRestrictedGrantType('a client id', 'grant type 2'));
+        $this->assertTrue($storage->checkRestrictedGrantType('a client id', 'grant_type2'));
     }
 
     /**
@@ -499,10 +499,10 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
         $document = new BSONDocument(
             [
                 '_id' => 'a client id',
-                'redirect_uri' => ['redirectUriOne', 'redirectUriTwo'],
+                'redirect_uri' => 'redirectUriOne redirectUriTwo',
                 'user_id' => 'a user id',
-                'scope' => ['aScope', 'anotherScope'],
-                'grant_types' => ['grant type 1', 'grant type 2'],
+                'scope' => 'aScope anotherScope',
+                'grant_types' => 'grant_type1 grant_type2',
                 'client_secret' => MongoDB::encryptCredentials('a client id', ' a secret'),
             ]
         );
@@ -560,10 +560,10 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
         $document = new BSONDocument(
             [
                 '_id' => 'a client id',
-                'redirect_uri' => ['redirectUriOne', 'redirectUriTwo'],
+                'redirect_uri' => 'redirectUriOne redirectUriTwo',
                 'user_id' => 'a user id',
-                'scope' => ['aScope', 'anotherScope'],
-                'grant_types' => ['grant type 1', 'grant type 2'],
+                'scope' => 'aScope anotherScope',
+                'grant_types' => 'grant_type1 grant_type2',
                 'client_secret' => null,
             ]
         );
@@ -621,7 +621,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
         $document = new BSONDocument(
             [
                 '_id' => 'a user id',
-                'scope' => ['aScope', 'anotherScope'],
+                'scope' => 'aScope anotherScope',
                 'extra' => 'extra data from mongo',
             ]
         );
@@ -746,7 +746,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                 '_id' => $token,
                 'client_id' => 'a client id',
                 'user_id' => 'a user id',
-                'scope' => [],
+                'scope' => null,
                 'extra' => 'extra data from mongo',
                 'expires' => $expires,
             ]
@@ -822,7 +822,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                     'client_id' => 'a client id',
                     'user_id' => 'a user id',
                     'expires' => new UTCDateTime($expires * 1000),
-                    'scope' => ['aScope', 'anotherScope'],
+                    'scope' => 'aScope anotherScope',
                 ]
             )
         );

@@ -107,7 +107,7 @@ final class MongoDB implements
             'user_id' => $document['user_id'],
             'expires' => $document['expires']->toDateTime()->getTimestamp(),
             'redirect_uri' => $document['redirect_uri'],
-            'scope' => empty($document['scope']) ? null : implode(' ', $document['scope']),
+            'scope' => $document['scope'],
             'id_token' => $document['id_token'],
         ];
     }
@@ -144,7 +144,7 @@ final class MongoDB implements
                 'user_id' => $userId,
                 'redirect_uri' => $redirectUri,
                 'expires' => new UTCDateTime($expires * 1000),
-                'scope' => explode(' ', $scope),
+                'scope' => $scope,
                 'id_token' => $idToken,
             ]
         );
@@ -197,7 +197,7 @@ final class MongoDB implements
             'expires' => $document['expires']->toDateTime()->getTimestamp(),
             'client_id' => $document['client_id'],
             'user_id' => $document['user_id'],
-            'scope' => empty($document['scope']) ? null : implode(' ', $document['scope']),
+            'scope' => $document['scope'],
         ];
     }
 
@@ -224,7 +224,7 @@ final class MongoDB implements
                 'client_id' => $clientId,
                 'user_id' => $userId,
                 'expires' => new UTCDateTime($expires * 1000),
-                'scope' => explode(' ', $scope),
+                'scope' => $scope,
             ]
         );
     }
@@ -261,11 +261,11 @@ final class MongoDB implements
         }
 
         return [
-            'redirect_uri' => implode(' ', $document['redirect_uri']),
+            'redirect_uri' => $document['redirect_uri'],
             'client_id' => $clientId,
-            'grant_types' => $document['grant_types'],
+            'grant_types' => array_filter(explode(' ', $document['grant_types'])),
             'user_id' => $document['user_id'],
-            'scope' => empty($document['scope']) ? null : implode(' ', $document['scope']),
+            'scope' => $document['scope'],
         ];
     }
 
@@ -281,7 +281,7 @@ final class MongoDB implements
      *
      * @return void
      */
-    public function setClientDetails($clientId, $clientSecret = null, $redirectUri = null, $grantTypes = null, $scope = null, $userId = null)
+    public function setClientDetails($clientId, $clientSecret = null, $redirectUri = null, array $grantTypes = [], $scope = null, $userId = null)
     {
         $this->getCollection('client_table')->updateOne(
             [
@@ -292,7 +292,7 @@ final class MongoDB implements
                     'client_secret' => $clientSecret !== null ? self::encryptCredentials($clientId, $clientSecret) : null,
                     'redirect_uri' => $redirectUri,
                     'grant_types' => $grantTypes,
-                    'scope' => explode(' ', $scope),
+                    'scope' => $scope,
                     'user_id' => $userId,
                 ]
             ],
@@ -330,7 +330,15 @@ final class MongoDB implements
     public function checkRestrictedGrantType($clientId, $grantType)
     {
         $client = $this->getClientDetails($clientId);
-        return $client === false ? false : in_array($grantType, $client['grant_types']);
+        if ($client === false) {
+            return true;
+        }
+
+        if (empty($client['grant_types'])) {
+            return true;
+        }
+
+        return in_array($grantType, $client['grant_types']);
     }
 
     /**
@@ -432,7 +440,7 @@ final class MongoDB implements
 
         return [
             'user_id' => $username,
-            'scope' => empty($document['scope']) ? null : implode(' ', $document['scope']),
+            'scope' => $document['scope'],
         ];
     }
 
@@ -468,7 +476,7 @@ final class MongoDB implements
             'client_id' => $document['client_id'],
             'user_id' => $document['user_id'],
             'expires' => $document['expires']->toDateTime()->getTimestamp(),
-            'scope' => empty($document['scope']) ? null : implode(' ', $document['scope']),
+            'scope' => $document['scope'],
         ];
     }
 
@@ -501,7 +509,7 @@ final class MongoDB implements
                 'client_id' => $clientId,
                 'user_id' => $userId,
                 'expires' => new UTCDateTime($expires * 1000),
-                'scope' => explode(' ', $scope),
+                'scope' => $scope,
             ]
         );
     }
