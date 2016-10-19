@@ -1130,4 +1130,90 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
             MongoDB::encryptCredentials($identifier, $secret)
         );
     }
+
+    /**
+     * Verify basic behavior of setClientDetails().
+     *
+     * @test
+     * @covers ::setClientDetails
+     *
+     * @return void
+     */
+    public function setClientDetails()
+    {
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('updateOne')->with(
+            $this->equalTo(['_id' => 'a client id']),
+            $this->equalTo(
+                [
+                    '$set' => [
+                        'client_secret' => MongoDB::encryptCredentials('a client id', 'a client secret'),
+                        'redirect_uri' => 'a redirect uri',
+                        'grant_types' => 'grant_type1 grant_type2',
+                        'scope' => 'aScope',
+                        'user_id' => 'a user id',
+                    ],
+                ]
+            ),
+            $this->equalTo(['upsert' => true])
+        );
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+        $storage->setClientDetails(
+            'a client id',
+            'a client secret',
+            'a redirect uri',
+            ['grant_type1', 'grant_type2'],
+            'aScope',
+            'a user id'
+        );
+    }
+
+    /**
+     * Verify behavior of setClientDetails() when no secret is given.
+     *
+     * @test
+     * @covers ::setClientDetails
+     *
+     * @return void
+     */
+    public function setClientDetailsNoSecret()
+    {
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('updateOne')->with(
+            $this->equalTo(['_id' => 'a client id']),
+            $this->equalTo(
+                [
+                    '$set' => [
+                        'client_secret' => null,
+                        'redirect_uri' => 'a redirect uri',
+                        'grant_types' => 'grant_type1 grant_type2',
+                        'scope' => 'aScope',
+                        'user_id' => 'a user id',
+                    ],
+                ]
+            ),
+            $this->equalTo(['upsert' => true])
+        );
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+        $storage->setClientDetails(
+            'a client id',
+            null,
+            'a redirect uri',
+            ['grant_type1', 'grant_type2'],
+            'aScope',
+            'a user id'
+        );
+    }
 }
