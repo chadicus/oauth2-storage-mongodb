@@ -487,6 +487,98 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * Verify behavior of checkRestrictedGrantType() when grant type is not supported.
+     *
+     * @test
+     * @covers ::checkRestrictedGrantType
+     *
+     * @return void
+     */
+    public function checkRestrictedGrantTypeNotSupported()
+    {
+        $document = new BSONDocument(
+            [
+                '_id' => 'a client id',
+                'redirect_uri' => 'redirectUriOne redirectUriTwo',
+                'user_id' => 'a user id',
+                'scope' => 'aScope anotherScope',
+                'grant_types' => 'grant_type1 grant_type2',
+            ]
+        );
+
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => 'a client id'])
+        )->will($this->returnValue($document));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+
+        $this->assertFalse($storage->checkRestrictedGrantType('a client id', 'grant_type3'));
+    }
+
+    /**
+     * Verify behavior of checkRestrictedGrantType() when client is not found.
+     *
+     * @test
+     * @covers ::checkRestrictedGrantType
+     *
+     * @return void
+     */
+    public function checkRestrictedGrantTypeClientNotFound()
+    {
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => 'a client id'])
+        )->will($this->returnValue(null));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+        $this->assertTrue($storage->checkRestrictedGrantType('a client id', 'grant_type2'));
+    }
+
+    /**
+     * Verify behavior of checkRestrictedGrantType() when client has empty grant_types.
+     *
+     * @test
+     * @covers ::checkRestrictedGrantType
+     *
+     * @return void
+     */
+    public function checkRestrictedGrantTypeEmptyGrantType()
+    {
+        $document = new BSONDocument(
+            [
+                '_id' => 'a client id',
+                'redirect_uri' => 'redirectUriOne redirectUriTwo',
+                'user_id' => 'a user id',
+                'scope' => 'aScope anotherScope',
+                'grant_types' => null,
+            ]
+        );
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('findOne')->with(
+            $this->equalTo(['_id' => 'a client id'])
+        )->will($this->returnValue($document));
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+        $this->assertTrue($storage->checkRestrictedGrantType('a client id', 'grant_type2'));
+    }
+
+    /**
      * Verify basic behavior of checkClientCredentials().
      *
      * @test
