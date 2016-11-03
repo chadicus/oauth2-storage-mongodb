@@ -66,6 +66,7 @@ final class MongoDB implements
                 'refresh_token_table' => 'oauth_refresh_tokens',
                 'jti_table' => 'oauth_jti',
                 'jwt_table' => 'oauth_jwt',
+                'client_secret_key' => 'client_secret',
             ],
             $config
         );
@@ -289,7 +290,7 @@ final class MongoDB implements
             ],
             [
                 '$set' => [
-                    'client_secret' => $clientSecret !== null ? self::encryptCredentials($clientId, $clientSecret) : null,
+                    $this->config['client_secret_key'] => $clientSecret !== null ? self::encryptCredentials($clientId, $clientSecret) : null,
                     'redirect_uri' => $redirectUri,
                     'grant_types' => implode(' ', $grantTypes),
                     'scope' => $scope,
@@ -360,7 +361,7 @@ final class MongoDB implements
             return false;
         }
 
-        return self::encryptCredentials($clientId, $clientSecret) === $document['client_secret'];
+        return self::encryptCredentials($clientId, $clientSecret) === $document[$this->config['client_secret_key']];
     }
 
     /**
@@ -383,7 +384,7 @@ final class MongoDB implements
             return false;
         }
 
-        return empty($document['client_secret']);
+        return empty($document[$this->config['client_secret_key']]);
     }
 
     /**
