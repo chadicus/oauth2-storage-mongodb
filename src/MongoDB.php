@@ -261,12 +261,13 @@ final class MongoDB implements
             return false;
         }
 
+        $grantTypes = isset($document['grant_types']) ? $document['grant_types'] : '';
         return [
-            'redirect_uri' => $document['redirect_uri'],
+            'redirect_uri' => isset($document['redirect_uri']) ? $document['redirect_uri'] : null,
             'client_id' => $clientId,
-            'grant_types' => array_filter(explode(' ', $document['grant_types'])),
-            'user_id' => $document['user_id'],
-            'scope' => $document['scope'],
+            'grant_types' => array_filter(explode(' ', $grantTypes)),
+            'user_id' => isset($document['user_id']) ? $document['user_id'] : null,
+            'scope' => isset($document['scope']) ? $document['scope'] : null,
         ];
     }
 
