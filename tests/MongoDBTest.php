@@ -4,7 +4,6 @@ namespace OAuth2Test\Storage;
 
 use OAuth2\Storage\MongoDB;
 use MongoDB\BSON\ObjectID;
-use MongoDB\BSON\UTCDateTime;
 use MongoDB\Model\BSONDocument;
 
 /**
@@ -25,7 +24,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
     public function getAuthorizationCode()
     {
         $code = md5(microtime(true));
-        $expires = new UTCDateTime((int)(microtime(true) * 1000));
+        $expires = time();
         $document = new BSONDocument(
             [
                 '_id' => $code,
@@ -52,7 +51,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
             [
                 'client_id' => 'a client id',
                 'user_id' => 'a user id',
-                'expires' => $expires->toDateTime()->getTimestamp(),
+                'expires' => $expires,
                 'redirect_uri' => 'a redirect uri',
                 'scope' => 'aScope anotherScope',
                 'id_token' => 'an id token',
@@ -72,7 +71,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
     public function getAuthorizationCodeArrayResult()
     {
         $code = md5(microtime(true));
-        $expires = new UTCDateTime((int)(microtime(true) * 1000));
+        $expires = time();
         $result = [
             '_id' => $code,
             'client_id' => 'a client id',
@@ -97,7 +96,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
             [
                 'client_id' => 'a client id',
                 'user_id' => 'a user id',
-                'expires' => $expires->toDateTime()->getTimestamp(),
+                'expires' => $expires,
                 'redirect_uri' => 'a redirect uri',
                 'scope' => 'aScope anotherScope',
                 'id_token' => 'an id token',
@@ -150,7 +149,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                     'client_id' => 'a client id',
                     'user_id' => 'a user id',
                     'redirect_uri' => 'a redirect uri',
-                    'expires' => new UTCDateTime($expires * 1000),
+                    'expires' => $expires,
                     'scope' => 'aScope',
                     'id_token' => null,
                 ]
@@ -202,7 +201,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
     public function getAccessToken()
     {
         $token = md5(microtime(true));
-        $expires = new UTCDateTime((int)(microtime(true) * 1000));
+        $expires = time();
         $document = new BSONDocument(
             [
                 '_id' => $token,
@@ -225,7 +224,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
 
         $this->assertSame(
             [
-                'expires' => $expires->toDateTime()->getTimestamp(),
+                'expires' => $expires,
                 'client_id' => 'a client id',
                 'user_id' => 'a user id',
                 'scope' => 'aScope',
@@ -277,7 +276,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                     '_id' => $token,
                     'client_id' => 'a client id',
                     'user_id' => 'a user id',
-                    'expires' => new UTCDateTime($expires * 1000),
+                    'expires' => $expires,
                     'scope' => 'aScope anotherScope',
                 ]
             )
@@ -832,7 +831,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
     public function getRefreshToken()
     {
         $token = md5(microtime(true));
-        $expires = new UTCDateTime((int)(microtime(true) * 1000));
+        $expires = time();
         $document = new BSONDocument(
             [
                 '_id' => $token,
@@ -861,7 +860,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                 'refresh_token' => $token,
                 'client_id' => 'a client id',
                 'user_id' => 'a user id',
-                'expires' => $expires->toDateTime()->getTimeStamp(),
+                'expires' => $expires,
                 'scope' => null,
             ],
             $storage->getRefreshToken($token)
@@ -913,7 +912,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                     '_id' => $token,
                     'client_id' => 'a client id',
                     'user_id' => 'a user id',
-                    'expires' => new UTCDateTime($expires * 1000),
+                    'expires' => $expires,
                     'scope' => 'aScope anotherScope',
                 ]
             )
@@ -1028,7 +1027,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                 'client_id' => 'a client id',
                 'subject' => 'a subject',
                 'audience' => 'an audience',
-                'expires' => new UTCDateTime($expires * 1000),
+                'expires' => $expires,
                 'jti' => 'a jti',
             ]
         );
@@ -1064,7 +1063,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                     'client_id' => 'a client id',
                     'subject' => 'a subject',
                     'audience' => 'an audience',
-                    'expires' => new UTCDateTime($expires * 1000),
+                    'expires' => $expires,
                     'jti' => 'a jti',
                 ]
             )
@@ -1097,7 +1096,7 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
                     'client_id' => 'a client id',
                     'subject' => 'a subject',
                     'audience' => 'an audience',
-                    'expires' => new UTCDateTime($expires * 1000),
+                    'expires' => $expires,
                     'jti' => 'a jti',
                 ]
             )

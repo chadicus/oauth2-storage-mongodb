@@ -2,7 +2,6 @@
 
 namespace OAuth2\Storage;
 
-use MongoDB\BSON\UTCDateTime;
 use MongoDB\Database;
 use OAuth2\OpenID\Storage\AuthorizationCodeInterface as OpenIDAuthorizationCodeInterface;
 
@@ -106,7 +105,7 @@ final class MongoDB implements
         return [
             'client_id' => $document['client_id'],
             'user_id' => $document['user_id'],
-            'expires' => $document['expires']->toDateTime()->getTimestamp(),
+            'expires' => $document['expires'],
             'redirect_uri' => $document['redirect_uri'],
             'scope' => $document['scope'],
             'id_token' => $document['id_token'],
@@ -144,7 +143,7 @@ final class MongoDB implements
                 'client_id' => $clientId,
                 'user_id' => $userId,
                 'redirect_uri' => $redirectUri,
-                'expires' => new UTCDateTime($expires * 1000),
+                'expires' => (int)$expires,
                 'scope' => $scope,
                 'id_token' => $idToken,
             ]
@@ -195,7 +194,7 @@ final class MongoDB implements
         }
 
         return [
-            'expires' => $document['expires']->toDateTime()->getTimestamp(),
+            'expires' => $document['expires'],
             'client_id' => $document['client_id'],
             'user_id' => $document['user_id'],
             'scope' => $document['scope'],
@@ -224,7 +223,7 @@ final class MongoDB implements
                 '_id' => $token,
                 'client_id' => $clientId,
                 'user_id' => $userId,
-                'expires' => new UTCDateTime($expires * 1000),
+                'expires' => (int)$expires,
                 'scope' => $scope,
             ]
         );
@@ -477,7 +476,7 @@ final class MongoDB implements
             'refresh_token' => $token,
             'client_id' => $document['client_id'],
             'user_id' => $document['user_id'],
-            'expires' => $document['expires']->toDateTime()->getTimestamp(),
+            'expires' => $document['expires'],
             'scope' => $document['scope'],
         ];
     }
@@ -510,7 +509,7 @@ final class MongoDB implements
                 '_id' => $token,
                 'client_id' => $clientId,
                 'user_id' => $userId,
-                'expires' => new UTCDateTime($expires * 1000),
+                'expires' => (int)$expires,
                 'scope' => $scope,
             ]
         );
@@ -578,7 +577,7 @@ final class MongoDB implements
             'client_id' => $clientId,
             'subject' => $subject,
             'audience' => $audience,
-            'expires' => new UTCDateTime($expires * 1000),
+            'expires' => (int)$expires,
             'jti' => $jti,
         ];
         $document = $this->getCollection('jti_table')->findOne($query);
@@ -613,7 +612,7 @@ final class MongoDB implements
                 'client_id' => $clientId,
                 'subject' => $subject,
                 'audience' => $audience,
-                'expires' => new UTCDateTime($expires * 1000),
+                'expires' => (int)$expires,
                 'jti' => $jti,
             ]
         );
