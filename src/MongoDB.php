@@ -282,7 +282,7 @@ final class MongoDB implements
      *
      * @return void
      */
-    public function setClientDetails($clientId, $clientSecret = null, $redirectUri = null, array $grantTypes = [], $scope = null, $userId = null)
+    public function setClientDetails($clientId, $clientSecret = null, $redirectUri = null, array $grantTypes = null, $scope = null, $userId = null)
     {
         $this->getCollection('client_table')->updateOne(
             [
