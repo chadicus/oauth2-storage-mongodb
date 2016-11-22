@@ -1215,4 +1215,47 @@ final class MongoDBTest extends \PHPUnit_Framework_TestCase
             'a user id'
         );
     }
+
+    /**
+     * Verify behavior of setClientDetails() when grantTypes is null.
+     *
+     * @test
+     * @covers ::setClientDetails
+     *
+     * @return void
+     */
+    public function setClientDetailsNullGrantType()
+    {
+        $collectionMock = $this->getMockBuilder('\\MongoDB\\Collection')->disableOriginalConstructor()->getMock();
+        $collectionMock->expects($this->once())->method('updateOne')->with(
+            $this->equalTo(['_id' => 'a client id']),
+            $this->identicalTo(
+                [
+                    '$set' => [
+                        'client_secret' => MongoDB::encryptCredentials('a client id', 'a client secret'),
+                        'redirect_uri' => 'a redirect uri',
+                        'grant_types' => null,
+                        'scope' => 'aScope',
+                        'user_id' => 'a user id',
+                    ],
+                ]
+            ),
+            $this->equalTo(['upsert' => true])
+        );
+
+        $databaseMock = $this->getMockBuilder('\\MongoDB\\Database')->disableOriginalConstructor()->getMock();
+        $databaseMock->expects($this->once())->method('selectCollection')->with(
+            $this->equalTo('oauth_clients')
+        )->will($this->returnValue($collectionMock));
+
+        $storage = new MongoDB($databaseMock);
+        $storage->setClientDetails(
+            'a client id',
+            'a client secret',
+            'a redirect uri',
+            null,
+            'aScope',
+            'a user id'
+        );
+    }
 }

@@ -284,6 +284,10 @@ final class MongoDB implements
      */
     public function setClientDetails($clientId, $clientSecret = null, $redirectUri = null, array $grantTypes = null, $scope = null, $userId = null)
     {
+        if (is_array($grantTypes)) {
+            $grantTypes = implode(' ', $grantTypes);
+        }
+
         $this->getCollection('client_table')->updateOne(
             [
                 '_id' => $clientId,
@@ -292,7 +296,7 @@ final class MongoDB implements
                 '$set' => [
                     $this->config['client_secret_key'] => $clientSecret !== null ? self::encryptCredentials($clientId, $clientSecret) : null,
                     'redirect_uri' => $redirectUri,
-                    'grant_types' => implode(' ', $grantTypes),
+                    'grant_types' => $grantTypes,
                     'scope' => $scope,
                     'user_id' => $userId,
                 ]
